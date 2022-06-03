@@ -54,6 +54,55 @@ pub fn derive_message(input: proc_macro::TokenStream) -> proc_macro::TokenStream
             #name: self.#name.clone().ok_or(concat!(stringify!(#name), "is not set"))?
         }
     });
+
+    let setters = fields.iter().filter_map(|f| {
+        let name = &f.ident;
+
+        if let Some(nn) = name {
+            if nn.to_string() == "client_index".to_string() {
+                // let ty = &f.ty;
+                return Some(quote! {
+                    fn set_client_index(&mut self, client_index: u32) {
+                        self.client_index = client_index;
+                    }
+                    // pub fn set_#name(&mut self, #name:#ty) {
+                    //     self.#name = #name;
+                    // }
+                });
+            }
+        }
+        None
+    });
+
+    let setters2: Vec<()> = fields
+        .iter()
+        .filter_map(|f| {
+            let name = &f.ident;
+            if let Some(nn) = name {
+                if nn.to_string() == "client_index".to_string() {
+                    Some(())
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        })
+        .collect();
+    let request = if setters2.len() > 0 {
+        quote! {
+            impl vpp_api_message::VppApiRequest for #name {
+                #(#setters)*
+            }
+        }
+    } else {
+        quote! {
+            impl vpp_api_message::VppApiResponse for #name {
+
+            }
+        }
+    };
+
     let builder_ident = syn::Ident::new(&format!("Builder{}", name.to_string()), name.span());
     let expanded = quote! {
          pub struct #builder_ident{
@@ -67,6 +116,8 @@ pub fn derive_message(input: proc_macro::TokenStream) -> proc_macro::TokenStream
                 })
              }
          }
+         #request
+
          impl VppApiMessage for #name {
             fn get_message_name_and_crc() -> String {
                  String::from(#ident)

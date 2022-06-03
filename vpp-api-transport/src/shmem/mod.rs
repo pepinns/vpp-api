@@ -12,7 +12,7 @@ use crate::VppApiTransport;
 use socketpair::{socketpair_stream, SocketpairStream};
 use std::collections::VecDeque;
 use std::io::{Read, Write};
-use std::os::unix::io::AsRawFd;
+// use std::os::unix::io::AsRawFd;
 use std::sync::{Arc, Mutex};
 
 #[derive(Debug)]

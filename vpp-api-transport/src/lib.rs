@@ -7,8 +7,11 @@ pub mod afunix;
 pub mod mux;
 pub mod shmem;
 // Interactions. May be evicted later on...
+pub mod client;
+pub mod connection;
 pub mod error;
 pub mod reqrecv;
+pub mod transport;
 use crate::error::Error;
 use crate::error::Result;
 use bincode;

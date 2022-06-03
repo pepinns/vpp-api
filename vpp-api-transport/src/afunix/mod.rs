@@ -1,8 +1,18 @@
 use bincode;
 use bincode::Options;
+use log::debug;
+use log::warn;
 use serde::{Deserialize, Serialize};
+use std::convert::TryInto;
+use std::io::Read;
+use std::io::Write;
 use std::os::unix::net::UnixStream;
 
+use crate::connection::Connection;
+use crate::connection::ConnectionContext;
+use crate::connection::MsgFrame;
+use crate::connection::RecvHeader;
+use crate::error::Error;
 use crate::error::Result;
 use crate::VppApiBeaconing;
 use crate::VppApiTransport;
@@ -131,9 +141,124 @@ pub struct MsgSockClntCreateReplyEntry {
 
 impl VppApiBeaconing for UnixStream {}
 
+// impl VTransport for Transport {
+//     fn send<M: vpp_api_message::VppApiMessage>(&mut self, message: M) -> Result<()> {
+//         todo!()
+//     }
+
+//     fn recv<M: vpp_api_message::VppApiMessage>(&mut self) -> Result<M> {
+//         todo!()
+//     }
+// }
+
+impl Connection for Transport {
+    fn connect(&mut self, name: &str) -> Result<ConnectionContext> {
+        println!("Attempting to connect...");
+        let s = UnixStream::connect(&self.sock_path)?;
+        println!("Got unis socket connection.");
+        self.sock = Some(s);
+        self.connected = true;
+
+        /* FIXME: this is ugly and odd, there's gotta be a better way... */
+        let mut name1 = name.to_string();
+        let mut name_a: [u8; 64] = [0; 64];
+        while name1.len() < name_a.len() {
+            name1.push('\0');
+        }
+        name_a.copy_from_slice(&name1.as_bytes());
+
+        let sockclnt_create = MsgSockClntCreate {
+            _vl_msg_id: 15,
+            context: 124,
+            name: name_a,
+        };
+
+        let scs = get_encoder().serialize(&sockclnt_create).unwrap();
+
+        self.write(&scs)?;
+        println!("Wrote client create msg");
+        let buf = self.read_one_msg()?;
+        println!("got reply");
+        let hdr: MsgSockClntCreateReplyHdr = get_encoder().deserialize(&buf[0..20]).unwrap();
+        let client_index = hdr.index as u32;
+        let mut i = 0;
+        let message_max_index = hdr.count;
+        let mut message_name_to_id = HashMap::new();
+        while i < hdr.count as usize {
+            let sz = 66; /* MsgSockClntCreateReplyEntry */
+            let ofs1 = 20 + i * 66;
+            let ofs2 = ofs1 + sz;
+
+            let msg: MsgSockClntCreateReplyEntry =
+                get_encoder().deserialize(&buf[ofs1..ofs2]).unwrap();
+            let msg_name_trailing_zero = String::from_utf8_lossy(&msg.name);
+            let msg_name = msg_name_trailing_zero.trim_end_matches("\u{0}");
+            message_name_to_id.insert(msg_name.into(), msg.index);
+            i = i + 1;
+        }
+        println!("got headers");
+        Ok(ConnectionContext {
+            message_name_to_id,
+            message_max_index,
+            client_index,
+        })
+    }
+
+    fn disconnect(&mut self) -> Result<()> {
+        if self.connected {
+            self.sock = None;
+            self.connected = false;
+        }
+        Ok(())
+    }
+
+    fn read_msg(&mut self) -> Result<MsgFrame<RecvHeader>> {
+        let mut header_buf = [0; 16];
+        let mut data: Vec<u8> = vec![];
+
+        println!("in read_msg");
+        if let Err(e) = self.read_exact(&mut header_buf) {
+            warn!("read invalid header: {:?} err: {:?}", header_buf, e);
+            return Err(Error::InvalidHeader);
+        }
+
+        let hdr: RecvHeader = get_encoder().deserialize(&header_buf[..])?;
+        debug!("Got header: {:?}", hdr);
+
+        match hdr.msglen.try_into() {
+            Ok(msglen) => {
+                if msglen == 0 {
+                    return Err(Error::InvalidMessage);
+                }
+                data.resize(msglen, 0);
+                if let Err(e) = self.read_exact(&mut data) {
+                    warn!("expected {} byte message, got error: {:?}", msglen, e);
+                    return Err(Error::InvalidMessage);
+                }
+                Ok(MsgFrame {
+                    header: hdr,
+                    message: data,
+                })
+            }
+            Err(e) => Err(Error::Error(format!(
+                "msg length {} couldn't be converted to usize: {}",
+                hdr.msglen, e
+            ))),
+        }
+    }
+
+    fn write_msg(&mut self, frame: MsgFrame<u16>) -> Result<()> {
+        // let data = frame.header.serialize()?;
+        let mut data = get_encoder().serialize(&frame.header)?;
+        data.extend_from_slice(&frame.message);
+        self.write(&data).unwrap();
+        Ok(())
+    }
+}
+
 impl VppApiTransport for Transport {
     fn connect(&mut self, name: &str, _chroot_prefix: Option<&str>, _rx_qlen: i32) -> Result<()> {
-        use std::io::Write;
+        // use std::io::Write;
 
         let s = UnixStream::connect(&self.sock_path)?;
         self.sock = Some(s);

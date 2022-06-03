@@ -1,7 +1,8 @@
+#[allow(unused_imports)]
 use bincode;
-use bincode::Options;
+// use bincode::Options;
 use serde::{Deserialize, Serialize};
-use std::os::unix::net::UnixStream;
+// use std::os::unix::net::UnixStream;
 
 use crate::error::Result;
 use crate::VppApiBeaconing;
@@ -9,13 +10,14 @@ use crate::VppApiTransport;
 
 use std::collections::HashMap;
 
+#[allow(unused_imports)]
 use crate::get_encoder;
 use socketpair::SocketpairStream;
-use std::collections::VecDeque;
+// use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
 
 use socketpair::socketpair_stream;
-use std::marker::PhantomData;
+// use std::marker::PhantomData;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::thread;
 
@@ -277,7 +279,7 @@ pub struct MsgSockClntCreateReplyEntry {
 
 impl VppApiTransport for Transport {
     fn connect(&mut self, name: &str, _chroot_prefix: Option<&str>, _rx_qlen: i32) -> Result<()> {
-        use std::io::Write;
+        // use std::io::Write;
         // FIXME
 
         Ok(())
