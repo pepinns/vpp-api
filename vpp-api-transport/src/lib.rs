@@ -5,6 +5,7 @@ extern crate lazy_static;
 mod macros;
 pub mod afunix;
 pub mod shmem;
+pub mod tokio;
 // Interactions. May be evicted later on...
 pub mod error;
 pub mod reqrecv;
