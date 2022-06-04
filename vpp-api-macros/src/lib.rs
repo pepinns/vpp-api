@@ -1,6 +1,7 @@
 extern crate proc_macro;
 use quote::quote;
 use syn;
+use syn::spanned::Spanned;
 use syn::{parse_macro_input, DeriveInput};
 
 use proc_macro2::TokenTree;
@@ -48,26 +49,57 @@ pub fn derive_message(input: proc_macro::TokenStream) -> proc_macro::TokenStream
             }
         }
     });
+    let field_methods_trait = fields.iter().filter_map(|f| {
+        let name = &f.ident;
+        let ty = &f.ty;
+        if let Some(nn) = name {
+            if nn.to_string() == "client_index".to_string()
+                || nn.to_string() == "context".to_string()
+            {
+                let fn_name = syn::Ident::new(&format!("with_{}", nn.to_string()), f.ident.span());
+                return Some(quote! {
+                    fn #name(&mut self, #name:#ty) -> &mut Self{
+                        self.#name = Some(#name);
+                        self
+                    }
+                });
+            }
+        }
+        None
+    });
     let build_fields = fields.iter().map(|f| {
         let name = &f.ident;
+        if let Some(nn) = name {
+            if nn.to_string() == "client_index".to_string() || nn.to_string() == "context".to_string() {
+                return quote! {
+                    #name: self.#name.clone().unwrap_or_default()
+                };
+            }
+        }
         quote! {
-            #name: self.#name.clone().ok_or(concat!(stringify!(#name), "is not set"))?
+            #name: self.#name.clone().ok_or(concat!("Message Field: '" , stringify!(#name), "' is not set"))?
+        }
+    });
+    let build_fields_require = fields.iter().map(|f| {
+        let name = &f.ident;
+        quote! {
+            #name: self.#name.clone().ok_or(concat!("Message Field: '" , stringify!(#name), "' is not set"))?
         }
     });
 
     let setters = fields.iter().filter_map(|f| {
         let name = &f.ident;
+        let ty = &f.ty;
 
-        if let Some(nn) = name {
-            if nn.to_string() == "client_index".to_string() {
-                // let ty = &f.ty;
+        if let Some(nn) = &f.ident {
+            let fn_name = syn::Ident::new(&format!("set_{}", nn.to_string()), f.ident.span());
+            if nn.to_string() == "client_index".to_string()
+                || nn.to_string() == "context".to_string()
+            {
                 return Some(quote! {
-                    fn set_client_index(&mut self, client_index: u32) {
-                        self.client_index = client_index;
+                    fn #fn_name(&mut self, #name: #ty) {
+                        self.#name = #name;
                     }
-                    // pub fn set_#name(&mut self, #name:#ty) {
-                    //     self.#name = #name;
-                    // }
                 });
             }
         }
@@ -79,7 +111,9 @@ pub fn derive_message(input: proc_macro::TokenStream) -> proc_macro::TokenStream
         .filter_map(|f| {
             let name = &f.ident;
             if let Some(nn) = name {
-                if nn.to_string() == "client_index".to_string() {
+                if nn.to_string() == "client_index".to_string()
+                    || nn.to_string() == "context".to_string()
+                {
                     Some(())
                 } else {
                     None
@@ -89,10 +123,19 @@ pub fn derive_message(input: proc_macro::TokenStream) -> proc_macro::TokenStream
             }
         })
         .collect();
+    let builder_ident = syn::Ident::new(&format!("Builder{}", name.to_string()), name.span());
     let request = if setters2.len() > 0 {
         quote! {
             impl vpp_api_message::VppApiRequest for #name {
                 #(#setters)*
+            }
+            impl vpp_api_message::VppApiRequestBuilder for #builder_ident {
+                #(#field_methods_trait)*
+                fn build(&mut self) -> Result<#name, Box<dyn std::error::Error>>{
+                    Ok(#name{
+                        #(#build_fields_require,)*
+                    })
+                }
             }
         }
     } else {
@@ -103,7 +146,6 @@ pub fn derive_message(input: proc_macro::TokenStream) -> proc_macro::TokenStream
         }
     };
 
-    let builder_ident = syn::Ident::new(&format!("Builder{}", name.to_string()), name.span());
     let expanded = quote! {
          pub struct #builder_ident{
              #(#option_fields,)*
@@ -116,6 +158,7 @@ pub fn derive_message(input: proc_macro::TokenStream) -> proc_macro::TokenStream
                 })
              }
          }
+
          #request
 
          impl VppApiMessage for #name {

@@ -2,7 +2,7 @@ use bincode::Options;
 use log::info;
 use serde::{de::DeserializeOwned, Serialize};
 use std::fmt::Debug;
-use vpp_api_message::{VppApiMessage, VppApiRequest, VppApiResponse};
+use vpp_api_message::{VppApiMessage, VppApiRequest, VppApiRequestBuilder, VppApiResponse};
 
 use crate::{
     connection::{Connection, ConnectionContext, MsgFrame},
@@ -46,11 +46,22 @@ where
 pub trait VppRequest: VppMessage + VppApiRequest + Serialize + Debug {}
 pub trait VppResponse: VppMessage + VppApiResponse + DeserializeOwned + Debug {}
 
-// impl<M> VppRequest for M where M: VppApiMessage + Serialize {}
-// impl<M> VppResponse for M where M: VppApiMessage + Serialize + DeserializeOwned {}
-
 impl<M> VppRequest for M where M: VppMessage + VppApiRequest + Serialize + Debug {}
 impl<M> VppResponse for M where M: VppApiResponse + Serialize + DeserializeOwned + Debug {}
+
+impl<B> VppMessage for B
+where
+    B: VppApiRequestBuilder,
+{
+    fn as_frame(&self, msg_id: u16) -> MsgFrame<u16> {
+        let vppmsg = self.build().unwrap();
+        let message = get_encoder().serialize(vppmsg).unwrap();
+        MsgFrame {
+            header: msg_id,
+            message,
+        }
+    }
+}
 
 pub trait Transport {
     fn send<M: VppRequest>(&mut self, message: M) -> Result<()>;
