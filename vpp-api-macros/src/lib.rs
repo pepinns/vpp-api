@@ -58,7 +58,7 @@ pub fn derive_message(input: proc_macro::TokenStream) -> proc_macro::TokenStream
             {
                 let fn_name = syn::Ident::new(&format!("with_{}", nn.to_string()), f.ident.span());
                 return Some(quote! {
-                    fn #name(&mut self, #name:#ty) -> &mut Self{
+                    fn #fn_name(&mut self, #name:#ty) -> &mut Self{
                         self.#name = Some(#name);
                         self
                     }
@@ -106,6 +106,7 @@ pub fn derive_message(input: proc_macro::TokenStream) -> proc_macro::TokenStream
         None
     });
 
+    // only want to setup the setters if the request has both.
     let setters2: Vec<()> = fields
         .iter()
         .filter_map(|f| {
@@ -124,14 +125,16 @@ pub fn derive_message(input: proc_macro::TokenStream) -> proc_macro::TokenStream
         })
         .collect();
     let builder_ident = syn::Ident::new(&format!("Builder{}", name.to_string()), name.span());
-    let request = if setters2.len() > 0 {
+    let request = if setters2.len() > 1 {
         quote! {
             impl vpp_api_message::VppApiRequest for #name {
                 #(#setters)*
             }
             impl vpp_api_message::VppApiRequestBuilder for #builder_ident {
+                type Item = #name;
+
                 #(#field_methods_trait)*
-                fn build(&mut self) -> Result<#name, Box<dyn std::error::Error>>{
+                fn build(&mut self) -> Result<Self::Item, Box<dyn std::error::Error>>{
                     Ok(#name{
                         #(#build_fields_require,)*
                     })
@@ -147,6 +150,7 @@ pub fn derive_message(input: proc_macro::TokenStream) -> proc_macro::TokenStream
     };
 
     let expanded = quote! {
+         #[derive(Debug,Clone)]
          pub struct #builder_ident{
              #(#option_fields,)*
          }

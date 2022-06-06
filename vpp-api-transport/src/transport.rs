@@ -49,19 +49,20 @@ pub trait VppResponse: VppMessage + VppApiResponse + DeserializeOwned + Debug {}
 impl<M> VppRequest for M where M: VppMessage + VppApiRequest + Serialize + Debug {}
 impl<M> VppResponse for M where M: VppApiResponse + Serialize + DeserializeOwned + Debug {}
 
-impl<B> VppMessage for B
-where
-    B: VppApiRequestBuilder,
-{
-    fn as_frame(&self, msg_id: u16) -> MsgFrame<u16> {
-        let vppmsg = self.build().unwrap();
-        let message = get_encoder().serialize(vppmsg).unwrap();
-        MsgFrame {
-            header: msg_id,
-            message,
-        }
-    }
-}
+// for some reason this conflicts iwth the above impl of VppMessage
+// impl<B> VppMessage for B
+// where
+//     B: VppApiRequestBuilder,
+// {
+//     fn as_frame(&self, msg_id: u16) -> MsgFrame<u16> {
+//         let vppmsg = self.build().unwrap();
+//         let message = get_encoder().serialize(vppmsg).unwrap();
+//         MsgFrame {
+//             header: msg_id,
+//             message,
+//         }
+//     }
+// }
 
 pub trait Transport {
     fn send<M: VppRequest>(&mut self, message: M) -> Result<()>;
