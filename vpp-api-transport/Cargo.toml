@@ -18,16 +18,16 @@ path = "src/lib.rs"
 name = "vpp-api-transport-test"
 
 [dependencies]
-lazy_static = "1.4.0"
-serde = { version = "1.0", features = ["derive"] }
-bincode = "1.2.1"
-vpp-api-message = {path = "../vpp-api-message" }
-log = "0.4.14"
+lazy_static.workspace = true
+serde.workspace = true
+bincode.workspace = true
+vpp-api-message.workspace = true
+log.workspace = true
 
 [dev-dependencies]
-serde_json = "1.0"
-serde_yaml = "0.8"
-clap = { version = "3.0.0", features = [ "derive" ] }
+serde_json.workspace = true
+serde_yaml.workspace = true
+clap.workspace = true
 
 [build-dependencies]
-bindgen = "0.57.0"
+bindgen = "0.63.0"

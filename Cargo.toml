@@ -8,3 +8,29 @@ members = [
 	"vpp-api-transport",
 ]
 
+[workspace.dependencies]
+serde = { version = "1.0", features = ["derive"] }
+log = "0.4.14"
+serde_json = "1.0"
+serde_yaml = "0.8"
+minreq = { version = "2.3.0", features = ["https-rustls", "json-using-serde"] }
+clap = { version = "3.0.0", features = ["derive"] }
+typenum = "*"
+generic-array = { version = "*", features = ["serde"] }
+bincode = "1.2.1"
+serde_repr = "0.1"
+
+strum = "*"
+strum_macros = "*"
+env_logger = "*"
+linked-hash-map = { version = "*", features = ["serde_impl"] }
+convert_case = "*"
+regex = "1"
+syn ={ version= "1.0", features=["extra-traits","full"]}
+quote = "1.0"
+proc-macro2 = "1.0.26"
+lazy_static = "1.4.0"
+
+trybuild = { version = "1.0", features = ["diff"] }
+vpp-api-encoding = {path = "vpp-api-encoding"}
+vpp-api-message = {path = "vpp-api-message"}

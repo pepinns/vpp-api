@@ -13,17 +13,17 @@ name = "tests"
 path = "tests/progress.rs"
 
 [dev-dependencies]
-trybuild = { version = "1.0", features = ["diff"] }
-vpp-api-encoding = {path = "../vpp-api-encoding"}
-vpp-api-message = {path = "../vpp-api-message"}
-generic-array = { version = "*", features = ["serde"] }
-typenum = "*"
-serde = { version = "1.0", features = ["derive"] }
-bincode = "1.2.1"
+trybuild.workspace = true
+vpp-api-encoding.workspace = true
+vpp-api-message.workspace = true
+generic-array.workspace = true
+typenum.workspace = true
+serde.workspace = true
+bincode.workspace = true
 
 
 
 [dependencies]
-syn ={ version= "1.0", features=["extra-traits","full"]}
-quote = "1.0"
-proc-macro2 = "1.0.26"
+syn.workspace = true
+quote.workspace = true
+proc-macro2.workspace = true
