@@ -31,6 +31,8 @@ jobs:
         sudo chmod 777 /dev/shm/global_vm
         sudo chmod 777 /dev/shm/vpe-api
         sudo chmod 777 /run/vpp/*.sock
+    - name: Find libvppapiclient.so and print its location for checking
+        sudo find / -name libvppapiclient.so -print
     - name: Build and test the code
       run: |
         cargo test
@@ -45,10 +47,18 @@ jobs:
         sudo apt-get install -y build-essential clang-12
     - name: Create a test package using vpp-api-gen
       run: |
-        cargo run -- --in-file /usr/share/vpp/api/ --parse-type Tree --create-package --package-name testvpp
+        pwd
+        ls -al ..
+        cargo run -- --in-file /usr/share/vpp/api/ --parse-type Tree --create-package --package-name testvpp --vppapi-opts '{ path = "../vpp-api/{crate}/" }'
+        echo "Finished creating the test package"
     - name: Run tests within the generated package
       run: |
         cd ../testvpp
+        echo '==== Cargo.toml ===='
+        cat Cargo.toml
+        echo '==== end ===='
+        pwd
+
         cargo test -- --test-threads 1
 
 
