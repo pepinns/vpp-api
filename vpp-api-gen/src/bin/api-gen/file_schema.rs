@@ -46,6 +46,8 @@ pub struct VppJsApiFile {
     pub imports: Vec<String>,
     pub counters: Vec<VppJsApiCounter>,
     pub paths: Vec<Vec<VppJsApiPath>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub module: Option<String>,
 }
 
 impl VppJsApiFile {
@@ -105,7 +107,7 @@ impl VppJsApiFile {
         preamble.push_str("use vpp_api_macros::{VppMessage,VppUnionIdent};\n");
         preamble.push_str("use std::convert::TryInto;\n");
         preamble.push_str("use serde::{de::DeserializeOwned, Deserialize, Serialize};\n");
-        preamble.push_str("pub use vpp_api_encoding::typ::*;\n");
+        preamble.push_str("use vpp_api_encoding::typ::*;\n");
         preamble.push_str("pub use vpp_api_encoding;\n");
         preamble.push_str("use vpp_api_message::VppApiMessage;\n");
         preamble.push_str("use serde_repr::{Serialize_repr, Deserialize_repr};\n");
