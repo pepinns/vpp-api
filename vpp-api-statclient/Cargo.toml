@@ -1,0 +1,19 @@
+[package]
+name = "vpp-api-statclient"
+version = "0.1.0"
+edition = "2018"
+description = "fd.io VPP stats-segment client over shared memory"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "vpp_api_statclient"
+path = "src/lib.rs"
+
+[[example]]
+name = "vpp-api-statclient-test"
+
+[dependencies]
+
+[build-dependencies]
+bindgen = "0.71"
