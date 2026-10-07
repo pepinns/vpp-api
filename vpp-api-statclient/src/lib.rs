@@ -387,12 +387,17 @@ unsafe fn copy_value(
                 })
                 .collect(),
         ),
+        #[cfg(vpp_stat_histogram)]
         StatDirType::HistogramLog2 => StatValue::HistogramLog2Bins(
             copy_vpp_vec(data.log2_histogram_bins)
                 .into_iter()
                 .map(|per_thread| copy_vpp_vec(per_thread))
                 .collect(),
         ),
+        // Built against a VPP whose stat_client.h has no histogram payload
+        // (e.g. 24.10); see build.rs.
+        #[cfg(not(vpp_stat_histogram))]
+        StatDirType::HistogramLog2 => StatValue::Unsupported,
         StatDirType::Illegal
         | StatDirType::Empty
         | StatDirType::Symlink

@@ -66,6 +66,21 @@ fn main() {
         )
     }
 
+    // VPP 24.10's stat_segment_data_t union has no log2_histogram_bins member
+    // (client-side histogram support arrived in a later release), although
+    // the STAT_DIR_TYPE_HISTOGRAM_LOG2 enumerator already exists there. Only
+    // read the member when this VPP's header actually declares it; otherwise
+    // such entries come back as StatValue::Unsupported.
+    println!("cargo:rustc-check-cfg=cfg(vpp_stat_histogram)");
+    let header = std::fs::read_to_string(format!(
+        "{}/vpp-api/client/stat_client.h",
+        vpp_include_dir
+    ))
+    .expect("Couldn't read stat_client.h");
+    if header.contains("log2_histogram_bins") {
+        println!("cargo:rustc-cfg=vpp_stat_histogram");
+    }
+
     let bindings = bindgen::Builder::default()
         .header("src/wrapper.h")
         .clang_arg(format!("-I{}", vpp_include_dir))
